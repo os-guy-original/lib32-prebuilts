@@ -101,7 +101,8 @@ build() {
         -DUSE_WOFF2=OFF \
         -DUSE_OPENJPEG=OFF \
         -DUSE_LIBMANETTE=OFF \
-        -DUSE_AVIF=OFF
+        -DUSE_AVIF=OFF \
+        -DUSE_HYPHEN=OFF
     
     cmake --build build
 }
