@@ -65,8 +65,8 @@ jobs:
           lib32-dbus lib32-json-glib lib32-readline lib32-gtk3 lib32-libevent \
           lib32-at-spi2-core graphene gtk4 tinysparql gst-plugins-bad \
           libcloudproviders wayland-protocols vulkan-headers \
-          lib32-sdl2 lib32-x264 lib32-x265 lib32-vdpau lib32-alsa-lib \
-          lib32-libvorbis lib32-libtheora lib32-libwebp lib32-opus lib32-lame \
+          lib32-sdl2 lib32-alsa-lib \
+          lib32-libvorbis lib32-libtheora lib32-libwebp lib32-opus \
           ffmpeg
 
     - name: Build packages

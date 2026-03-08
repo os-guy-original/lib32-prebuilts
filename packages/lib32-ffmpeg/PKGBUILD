@@ -38,11 +38,8 @@ depends=(
     'lib32-fontconfig'
     'lib32-fribidi'
     'lib32-harfbuzz'
-    'lib32-ass'
+    'lib32-libass'
     'lib32-libssh'
-    'lib32-lame'
-    'lib32-x264'
-    'lib32-x265'
     'ffmpeg'
 )
 makedepends=(
@@ -93,14 +90,14 @@ build() {
         --disable-opencl \
         --disable-libvmaf \
         --disable-vapoursynth \
-        --enable-libx264 \
-        --enable-libx265 \
+        --disable-libx264 \
+        --disable-libx265 \
         --enable-libvpx \
         --enable-libaom \
         --enable-libdav1d \
         --enable-libopus \
         --enable-libvorbis \
-        --enable-libmp3lame \
+        --disable-libmp3lame \
         --enable-libtheora \
         --enable-libwebp \
         --enable-libass
