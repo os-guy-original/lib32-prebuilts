@@ -36,7 +36,6 @@ jobs:
         pacman-key --init
         pacman-key --populate archlinux
         
-        # Enable multilib repository
         if ! grep -q '^\[multilib\]' /etc/pacman.conf; then
           echo -e "\n[multilib]\nInclude = /etc/pacman.d/mirrorlist" >> /etc/pacman.conf
         fi
@@ -46,6 +45,14 @@ jobs:
 
     - name: Checkout
       uses: actions/checkout@v4
+
+    - name: Debug - List repo contents
+      run: |
+        echo "=== Repo directory contents ==="
+        ls -la repo/*.pkg.tar.zst 2>/dev/null | head -20 || echo "No packages found"
+        echo ""
+        echo "=== Checking first package ==="
+        ls -la repo/lib32-gdbm* 2>/dev/null || echo "lib32-gdbm not found"
 
     - name: Import GPG key
       env:
@@ -62,7 +69,6 @@ jobs:
 
     - name: Install 32-bit dependencies
       run: |
-        # Read packages.conf and install required dependencies
         pacman -S --noconfirm --needed \
           lib32-glib2 lib32-pcre2 lib32-libffi lib32-zlib lib32-util-linux \
           lib32-icu lib32-libsoup3 lib32-sqlite lib32-gstreamer \
@@ -85,17 +91,35 @@ jobs:
         chmod +x scripts/*.sh
         source scripts/common.sh
         
+        echo "=== REPO_DIR: $REPO_DIR ==="
+        echo "=== Checking packages ==="
+        
         if [ "${{ inputs.force }}" = "true" ]; then
           echo "Force rebuild requested"
           echo "needs_build=all" >> $GITHUB_OUTPUT
         else
-          # Check each package
           needs_build="no"
           while IFS='|' read -r name version depends notes; do
             [[ -z "$name" || "$name" =~ ^# ]] && continue
+            
+            # Debug output
+            pkgfile=$(ls "$REPO_DIR/${name}-${version}"*-x86_64.pkg.tar.zst 2>/dev/null | grep -v debug | head -1)
+            if [ -n "$pkgfile" ]; then
+              echo "Found: $pkgfile"
+              if [ -f "${pkgfile}.sig" ]; then
+                echo "  Signature exists"
+              else
+                echo "  No signature"
+              fi
+            else
+              echo "Not found: ${name}-${version}"
+            fi
+            
             if ! check_package_valid "$name" "$version"; then
               needs_build="yes"
-              echo "Needs build: $name"
+              echo ">> Needs build: $name"
+            else
+              echo ">> Valid: $name"
             fi
           done < packages.conf
           echo "needs_build=$needs_build" >> $GITHUB_OUTPUT
