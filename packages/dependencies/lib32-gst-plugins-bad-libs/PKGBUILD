@@ -55,6 +55,7 @@ build() {
     -D msdk=disabled
     -D d3d11=disabled
     -D vulkan=disabled
+    -D webrtc=disabled
     -D package-name="Arch Linux ${pkgname} ${pkgver}-${pkgrel}"
     -D package-origin='https://www.archlinux.org/'
   )
