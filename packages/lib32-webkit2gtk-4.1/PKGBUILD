@@ -5,7 +5,7 @@
 pkgname=lib32-webkit2gtk-4.1
 pkgver=2.50.5
 pkgrel=1
-pkgdesc='Web content engine for GTK (32-bit)'
+pkgdesc='Web content engine for GTK (32-bit) - JIT disabled for 32-bit compatibility'
 arch=('x86_64')
 url='https://webkitgtk.org'
 license=('LGPL-2.1-or-later')
@@ -50,8 +50,6 @@ makedepends=(
     'python'
     'ruby'
     'wayland-protocols'
-    'bubblewrap'
-    'xdg-dbus-proxy'
 )
 provides=(
     'lib32-libjavascriptcoregtk-4.1.so'
@@ -69,8 +67,8 @@ build() {
     export NM='llvm-nm'
     export RANLIB='llvm-ranlib'
     
-    export CFLAGS="-m32 -fcf-protection=none ${CFLAGS}"
-    export CXXFLAGS="-m32 -fcf-protection=none ${CXXFLAGS}"
+    export CFLAGS="-m32 ${CFLAGS}"
+    export CXXFLAGS="-m32 ${CXXFLAGS}"
     export LDFLAGS="-m32 -fuse-ld=lld ${LDFLAGS}"
     
     CFLAGS="${CFLAGS/_FORTIFY_SOURCE=3/_FORTIFY_SOURCE=2}"
@@ -92,6 +90,7 @@ build() {
         -DENABLE_INTROSPECTION=OFF \
         -DENABLE_GAMEPAD=OFF \
         -DENABLE_WEBDRIVER=OFF \
+        -DENABLE_JIT=OFF \
         -DENABLE_BUBBLEWRAP_SANDBOX=OFF \
         -DUSE_GTK4=OFF \
         -DUSE_SOUP2=OFF \
