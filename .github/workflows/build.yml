@@ -167,6 +167,11 @@ jobs:
         if [ -f scripts/build-all.sh ]; then
           chmod +x scripts/build-all.sh
           sudo -u builder ./scripts/build-all.sh 2>&1 | tee build.log
+          BUILD_EXIT_CODE=${PIPESTATUS[0]}
+          if [ $BUILD_EXIT_CODE -ne 0 ]; then
+            echo "Build failed with exit code $BUILD_EXIT_CODE"
+            exit 1
+          fi
         elif [ -f scripts/common.sh ]; then
           source scripts/common.sh
           log_info "Building packages in dependency order..."
@@ -185,7 +190,6 @@ jobs:
           echo "No build scripts found, attempting manual build..."
         fi
         echo "::endgroup::"
-      continue-on-error: true
 
     - name: Build specific package
       if: inputs.package != ''
