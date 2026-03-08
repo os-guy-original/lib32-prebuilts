@@ -157,7 +157,8 @@ jobs:
           tinysparql \
           gst-plugins-bad \
           libcloudproviders \
-          wayland-protocols
+          wayland-protocols \
+          vulkan-headers
         echo "::endgroup::"
 
     - name: Build dependencies
