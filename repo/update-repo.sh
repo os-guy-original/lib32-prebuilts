@@ -17,14 +17,20 @@ if [ "$PKG_COUNT" -eq 0 ]; then
     exit 0
 fi
 
-# Remove old database
+# Remove old database and symlinks
 rm -f "$REPO_NAME".db.tar.gz "$REPO_NAME".files.tar.gz
+rm -f "$REPO_NAME".db "$REPO_NAME".files
+rm -f "$REPO_NAME".db.tar.gz.old "$REPO_NAME".files.tar.gz.old
 
 # Create new database
 for pkg in "${PACKAGES[@]}"; do
     echo "Adding: $(basename "$pkg")"
     repo-add "$REPO_NAME".db.tar.gz "$pkg"
 done
+
+# Remove symlinks created by repo-add (GitHub raw URLs need actual files)
+rm -f "$REPO_NAME".db "$REPO_NAME".files
+rm -f "$REPO_NAME".db.tar.gz.old "$REPO_NAME".files.tar.gz.old
 
 echo ""
 ls -lh "$REPO_NAME".db.tar.gz

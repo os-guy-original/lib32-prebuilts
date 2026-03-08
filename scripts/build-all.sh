@@ -64,10 +64,10 @@ build_packages() {
             [ -f "$pkg_file" ] && sudo pacman -U "$pkg_file" --noconfirm
             
             log_ok "$name"
-            ((built++))
+            built=$((built + 1))
         else
             log_err "Failed to build: $name"
-            ((failed++))
+            failed=$((failed + 1))
         fi
     done < "$deps_file"
     
