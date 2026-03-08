@@ -82,6 +82,32 @@ For new dependency packages, create a new directory under `packages/dependencies
 
 Push changes to the repository to trigger new GitHub Actions workflow runs. Each push will initiate a fresh build attempt. Use the watch command to monitor the build progress in real-time until it completes or fails.
 
+### 4.4 Testing Build Flags Locally
+
+Before pushing to GitHub for CI/CD, you can test build flags locally to avoid many back-and-forth commits:
+
+1. **Clone the repository** to your local Arch Linux machine with multilib enabled
+
+2. **Test meson options** by running the build command with different flags:
+   ```bash
+   cd packages/dependencies/lib32-gst-plugins-bad-libs
+   meson setup build --libdir=/usr/lib32 -D option1=disabled -D option2=enabled
+   ```
+
+3. **Check available options**:
+   ```bash
+   meson configure build  # List all options
+   ```
+
+4. **Test if it compiles**:
+   ```bash
+   meson compile -C build
+   ```
+
+5. **If successful**, then update the PKGBUILD with the correct flags and push
+
+This saves time by catching wrong/missing options locally instead of relying on GitHub Actions.
+
 ## 5. Key Commands
 
 The following GitHub CLI commands are essential for working with this repository:
