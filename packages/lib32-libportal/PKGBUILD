@@ -30,10 +30,11 @@ b2sums=('SKIP')
 prepare() {
     cd libportal
     # Fix build against Qt 6.9
-    git cherry-pick -n 796053d2eebe4532aad6bd3fd80cdf3b197806ec || true
+    git cherry-pick -n 796053d2eebe4532aad6bd3fd80cdf3b197806ec 2>/dev/null || true
 }
 
 build() {
+    # 32-bit environment
     export CC='gcc -m32'
     export CXX='g++ -m32'
     export PKG_CONFIG_PATH='/usr/lib32/pkgconfig'
@@ -41,21 +42,17 @@ build() {
     export CXXFLAGS="-m32 ${CXXFLAGS}"
     export LDFLAGS="-m32 ${LDFLAGS}"
 
-    local meson_options=(
-        -Dbackend-gtk3=enabled
-        -Dbackend-gtk4=enabled
-        -Dbackend-qt5=disabled
-        -Dbackend-qt6=disabled
-        -Dintrospection=false
-        -Dvapi=false
-        -Ddocs=false
-        -Dtests=false
-    )
-
     arch-meson libportal build \
         --libdir=/usr/lib32 \
         --libexecdir=/usr/lib32 \
-        "${meson_options[@]}"
+        -Dbackend-gtk3=enabled \
+        -Dbackend-gtk4=enabled \
+        -Dbackend-qt5=disabled \
+        -Dbackend-qt6=disabled \
+        -Dintrospection=false \
+        -Dvapi=false \
+        -Ddocs=false \
+        -Dtests=false
 
     meson compile -C build
 }
@@ -80,7 +77,6 @@ package_lib32-libportal() {
     optdepends=(
         'lib32-libportal-gtk3: GTK 3 backend'
         'lib32-libportal-gtk4: GTK 4 backend'
-        'xdg-desktop-portal: Portal service'
     )
     provides=('lib32-libportal.so')
 
@@ -96,8 +92,8 @@ package_lib32-libportal() {
         _pick $x usr/lib32/pkgconfig/libportal-$x.pc
     done
 
-    # Remove anything not needed
     rm -rf usr/share
+    rm -rf usr/include
 }
 
 package_lib32-libportal-gtk3() {
