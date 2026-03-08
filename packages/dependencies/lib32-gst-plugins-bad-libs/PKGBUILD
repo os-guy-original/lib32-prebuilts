@@ -51,6 +51,7 @@ build() {
     -D glib-asserts=disabled
     -D glib-checks=disabled
     -D opencv=disabled
+    -D aja=disabled
     -D va=disabled
     -D msdk=disabled
     -D d3d11=disabled
