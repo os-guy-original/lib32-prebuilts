@@ -77,7 +77,7 @@ jobs:
           lib32-freetype2 lib32-fontconfig lib32-fribidi \
           lib32-libgcrypt lib32-libtasn1 lib32-libwebp \
           lib32-lcms2 lib32-libxslt lib32-atk \
-          ffmpeg glib2-devel ruby python
+          ffmpeg glib2-devel ruby python ruby-getoptlong
 
     - name: Check packages status
       id: check
