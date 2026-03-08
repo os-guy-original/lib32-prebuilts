@@ -24,7 +24,6 @@ depends=(
     'lib32-glib2>=2.80'
     'lib32-glibc'
     'lib32-graphene>=1.10'
-    'lib32-gst-plugins-bad-libs'
     'lib32-gst-plugins-base-libs'
     'lib32-gstreamer>=1.24'
     'lib32-harfbuzz>=8.4'
