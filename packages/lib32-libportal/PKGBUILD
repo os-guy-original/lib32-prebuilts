@@ -1,0 +1,125 @@
+# Maintainer: lib32-prebuilts
+# Based on official Arch package
+
+pkgbase=lib32-libportal
+pkgname=(
+    lib32-libportal
+    lib32-libportal-gtk3
+    lib32-libportal-gtk4
+)
+pkgver=0.9.1
+pkgrel=1
+pkgdesc="GIO-style async APIs for most Flatpak portals (32-bit)"
+arch=('x86_64')
+url="https://github.com/flatpak/libportal"
+license=('LGPL-3.0-only')
+depends=(
+    'lib32-glib2'
+    'lib32-glibc'
+    'lib32-gcc-libs'
+    'libportal'
+)
+makedepends=(
+    'git'
+    'meson'
+    'glib2-devel'
+)
+source=("git+https://github.com/flatpak/libportal#tag=$pkgver")
+b2sums=('SKIP')
+
+prepare() {
+    cd libportal
+    # Fix build against Qt 6.9
+    git cherry-pick -n 796053d2eebe4532aad6bd3fd80cdf3b197806ec || true
+}
+
+build() {
+    export CC='gcc -m32'
+    export CXX='g++ -m32'
+    export PKG_CONFIG_PATH='/usr/lib32/pkgconfig'
+    export CFLAGS="-m32 ${CFLAGS}"
+    export CXXFLAGS="-m32 ${CXXFLAGS}"
+    export LDFLAGS="-m32 ${LDFLAGS}"
+
+    local meson_options=(
+        -Dbackend-gtk3=enabled
+        -Dbackend-gtk4=enabled
+        -Dbackend-qt5=disabled
+        -Dbackend-qt6=disabled
+        -Dintrospection=false
+        -Dvapi=false
+        -Ddocs=false
+        -Dtests=false
+    )
+
+    arch-meson libportal build \
+        --libdir=/usr/lib32 \
+        --libexecdir=/usr/lib32 \
+        "${meson_options[@]}"
+
+    meson compile -C build
+}
+
+_pick() {
+    local p="$1" f d; shift
+    for f; do
+        d="$srcdir/$p/${f#$pkgdir/}"
+        mkdir -p "$(dirname "$d")"
+        mv "$f" "$d"
+        rmdir -p --ignore-fail-on-non-empty "$(dirname "$f")"
+    done
+}
+
+package_lib32-libportal() {
+    depends=(
+        'lib32-glib2'
+        'lib32-glibc'
+        'lib32-gcc-libs'
+        'libportal'
+    )
+    optdepends=(
+        'lib32-libportal-gtk3: GTK 3 backend'
+        'lib32-libportal-gtk4: GTK 4 backend'
+        'xdg-desktop-portal: Portal service'
+    )
+    provides=('lib32-libportal.so')
+
+    meson install -C build --destdir "$pkgdir"
+
+    cd "$pkgdir"
+
+    # Pick out split packages
+    local x
+    for x in gtk3 gtk4; do
+        _pick $x usr/include/libportal-$x
+        _pick $x usr/lib32/libportal-$x.*
+        _pick $x usr/lib32/pkgconfig/libportal-$x.pc
+    done
+
+    # Remove anything not needed
+    rm -rf usr/share
+}
+
+package_lib32-libportal-gtk3() {
+    pkgdesc+=" - GTK 3 backend"
+    depends=(
+        'lib32-glib2'
+        'lib32-gtk3'
+        'lib32-libportal'
+    )
+    provides=('lib32-libportal-gtk3.so')
+
+    mv gtk3/* "$pkgdir"
+}
+
+package_lib32-libportal-gtk4() {
+    pkgdesc+=" - GTK 4 backend"
+    depends=(
+        'lib32-glib2'
+        'lib32-gtk4'
+        'lib32-libportal'
+    )
+    provides=('lib32-libportal-gtk4.so')
+
+    mv gtk4/* "$pkgdir"
+}
