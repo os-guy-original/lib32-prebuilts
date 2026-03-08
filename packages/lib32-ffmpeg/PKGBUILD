@@ -47,7 +47,6 @@ build() {
     # 32-bit build environment
     export CC='gcc -m32'
     export CXX='g++ -m32'
-    export LD='ld -m elf_i386'
     export PKG_CONFIG_PATH='/usr/lib32/pkgconfig'
     export CFLAGS="-m32 -fPIC ${CFLAGS}"
     export CXXFLAGS="-m32 -fPIC ${CXXFLAGS}"
@@ -86,8 +85,7 @@ build() {
         --disable-libfreetype \
         --disable-libfontconfig \
         --disable-libfribidi \
-        --disable-lto \
-        --disable-asm
+        --disable-inline-asm
 
     make
 }
