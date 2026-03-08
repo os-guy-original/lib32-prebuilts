@@ -1,448 +1,93 @@
 name: Build lib32-gtk4
 
-# NOTE: For pushing to work from CI, you have two options:
-# 1. Use this workflow as-is with 'permissions: contents: write' (already set below)
-#    This works for pushing tags and releases but may not work for direct pushes to main
-# 2. For direct pushes to main branch, create a Personal Access Token (PAT):
-#    - Go to GitHub Settings > Developer settings > Personal access tokens > Tokens (classic)
-#    - Generate new token with 'repo' scope
-#    - Add it as a repository secret named 'PAT'
-#    - Then use: env:
-#        GITHUB_TOKEN: ${{ secrets.PAT }}
-#    instead of ${{ secrets.GITHUB_TOKEN }} in push steps
-
 permissions:
-  contents: write  # Allow pushing tags and releases
+  contents: write
 
 on:
   push:
     branches: [main, master]
-    tags:
-      - 'v*'
-  pull_request:
-    branches: [main, master]
   workflow_dispatch:
     inputs:
-      skip_deps:
-        description: 'Skip dependency builds'
-        required: false
-        default: 'false'
       package:
         description: 'Build specific package only'
-        required: false
-        default: ''
 
 env:
   PACKAGER: 'Kilo AI <kilo-ai@users.noreply.github.com>'
   MAKEFLAGS: '-j$(nproc)'
 
 jobs:
-  preflight:
-    runs-on: ubuntu-latest
-    outputs:
-      ready: ${{ steps.checks.outputs.ready }}
-    steps:
-      - name: Checkout repository
-        uses: actions/checkout@v4
-
-      - name: Check disk space
-        run: |
-          echo "::group::Disk Space Check"
-          df -h /
-          echo "::endgroup::"
-          AVAILABLE=$(df -BG / | awk 'NR==2 {print $4}' | tr -d 'G')
-          if [ "$AVAILABLE" -lt 10 ]; then
-            echo "ERROR: Less than 10GB available disk space"
-            exit 1
-          fi
-          echo "Disk space check passed"
-
-      - name: Check required tools (host)
-        run: |
-          echo "::group::Checking available tools"
-          echo "Note: Full tool checking happens in Arch container"
-          for tool in makepkg meson ninja pkgconf cmake autoconf automake libtool; do
-            if command -v $tool &> /dev/null; then
-              echo "$tool: $(which $tool)"
-            else
-              echo "$tool: not found (will be available in build container)"
-            fi
-          done
-          echo "::endgroup::"
-
-      - name: Validate PKGBUILD syntax
-        id: checks
-        run: |
-          echo "::group::Validating PKGBUILD files"
-          ERRORS=0
-          for pb in packages/*/PKGBUILD packages/*/*/PKGBUILD; do
-            [ -f "$pb" ] || continue
-            echo "Validating $pb"
-            if ! bash -n "$pb" 2>&1; then
-              echo "ERROR: Syntax error in $pb"
-              ERRORS=$((ERRORS + 1))
-            fi
-          done
-          echo "::endgroup::"
-          
-          if [ $ERRORS -gt 0 ]; then
-            echo "ready=false" >> $GITHUB_OUTPUT
-            echo "PKGBUILD validation failed with $ERRORS error(s)"
-            exit 1
-          fi
-          echo "ready=true" >> $GITHUB_OUTPUT
-
-      - name: Check multilib repository availability
-        run: |
-          echo "::group::Checking multilib repository"
-          echo "Multilib check will be performed in the build container"
-          echo "The build container will verify:"
-          echo "  - multilib repo is enabled in pacman.conf"
-          echo "  - multilib packages are available"
-          echo "::endgroup::"
-
-      - name: Check dependencies are defined
-        run: |
-          echo "::group::Checking dependency configuration"
-          if [ -f scripts/dependencies.conf ]; then
-            echo "Dependencies file found:"
-            cat scripts/dependencies.conf
-          else
-            echo "No custom dependencies.conf found"
-          fi
-          
-          echo ""
-          echo "Checking for PKGBUILD files:"
-          PKG_COUNT=$(find packages -name "PKGBUILD" | wc -l)
-          echo "Found $PKG_COUNT PKGBUILD file(s)"
-          
-          if [ $PKG_COUNT -eq 0 ]; then
-            echo "ERROR: No PKGBUILD files found!"
-            exit 1
-          fi
-          echo "::endgroup::"
-
-      - name: Summary
-        run: |
-          echo "### Pre-flight Checks Summary" >> $GITHUB_STEP_SUMMARY
-          echo "- Disk space: OK" >> $GITHUB_STEP_SUMMARY
-          echo "- PKGBUILD syntax: validated" >> $GITHUB_STEP_SUMMARY
-          echo "- Repository structure: OK" >> $GITHUB_STEP_SUMMARY
-
   build:
-    needs: preflight
     runs-on: ubuntu-latest
     container: archlinux:latest
     
     steps:
-    - name: Setup build environment
+    - name: Setup Arch Linux
       run: |
-        set -e
-        
-        echo "::group::Initializing pacman keyring"
         pacman-key --init
         pacman-key --populate archlinux
-        echo "::endgroup::"
-        
-        echo "::group::Enabling multilib repository"
-        if grep -q '^\[multilib\]' /etc/pacman.conf; then
-          echo "multilib already enabled in pacman.conf"
-        else
-          if grep -q '^#\[multilib\]' /etc/pacman.conf; then
-            sed -i '/^#\[multilib\]/,/^#Include/ s/^#//' /etc/pacman.conf
-          else
-            echo "" >> /etc/pacman.conf
-            echo '[multilib]' >> /etc/pacman.conf
-            echo 'Include = /etc/pacman.d/mirrorlist' >> /etc/pacman.conf
-          fi
-        fi
-        echo "::endgroup::"
-        
-        echo "::group::Syncing package databases"
+        sed -i '/^#\[multilib\]/,/^#Include/ s/^#//' /etc/pacman.conf
         pacman -Sy --noconfirm
-        echo "::endgroup::"
-        
-        echo "::group::Verifying multilib repository"
-        if ! pacman -Sl multilib 2>/dev/null | head -1; then
-          echo "ERROR: multilib repository not available"
-          exit 1
-        fi
-        echo "multilib repository enabled successfully"
-        echo "::endgroup::"
-        
-        echo "::group::Installing build dependencies"
-        pacman -S --noconfirm --needed \
-          base-devel \
-          git \
-          multilib-devel \
-          sudo \
-          meson \
-          ninja \
-          pkgconf \
-          cmake \
-          autoconf \
-          automake \
-          libtool \
-          gettext \
-          glib2-devel \
-          python \
-          python-docutils \
-          gtk-doc \
-          gobject-introspection
-        echo "::endgroup::"
+        pacman -S --noconfirm --needed base-devel git multilib-devel sudo meson ninja pkgconf cmake
 
-    - name: Checkout repository
+    - name: Checkout
       uses: actions/checkout@v4
-      with:
-        fetch-depth: 0
 
-    - name: Create build user
+    - name: Setup build user
       run: |
         useradd -m -G wheel builder
         echo 'builder ALL=(ALL) NOPASSWD: ALL' >> /etc/sudoers
         chown -R builder:builder .
 
-    - name: Load dependency configuration
-      id: deps
+    - name: Install 32-bit dependencies
       run: |
-        if [ -f scripts/dependencies.conf ]; then
-          echo "dependencies_loaded=true" >> $GITHUB_OUTPUT
-          echo "::group::Dependency Configuration"
-          cat scripts/dependencies.conf
-          echo "::endgroup::"
-        else
-          echo "dependencies_loaded=false" >> $GITHUB_OUTPUT
-        fi
-
-    - name: Install 32-bit dependencies from multilib
-      run: |
-        echo "::group::Installing 32-bit dependencies"
         pacman -S --noconfirm --needed \
-          lib32-glib2 \
-          lib32-pcre2 \
-          lib32-libffi \
-          lib32-zlib \
-          lib32-util-linux \
-          lib32-icu \
-          lib32-libsoup3 \
-          lib32-sqlite \
-          lib32-gstreamer \
-          lib32-gst-plugins-base-libs \
-          lib32-orc \
-          lib32-colord \
-          lib32-libcups \
-          lib32-libepoxy \
-          lib32-harfbuzz \
-          lib32-pango \
-          lib32-cairo \
-          lib32-fontconfig \
-          lib32-fribidi \
-          lib32-gdk-pixbuf2 \
-          lib32-libjpeg-turbo \
-          lib32-libva \
-          lib32-libpng \
-          lib32-libtiff \
-          lib32-libx11 \
-          lib32-libxcursor \
-          lib32-libxdamage \
-          lib32-libxext \
-          lib32-libxfixes \
-          lib32-libxi \
-          lib32-libxinerama \
-          lib32-libxkbcommon \
-          lib32-libxrandr \
-          lib32-vulkan-icd-loader \
-          lib32-wayland \
-          lib32-dbus \
-          lib32-json-glib \
-          lib32-readline \
-          lib32-gtk3 \
-          lib32-libevent \
-          lib32-at-spi2-core \
-          graphene \
-          gtk4 \
-          tinysparql \
-          gst-plugins-bad \
-          libcloudproviders \
-          wayland-protocols \
-          vulkan-headers
-        echo "::endgroup::"
+          lib32-glib2 lib32-pcre2 lib32-libffi lib32-zlib lib32-util-linux \
+          lib32-icu lib32-libsoup3 lib32-sqlite lib32-gstreamer \
+          lib32-gst-plugins-base-libs lib32-orc lib32-colord lib32-libcups \
+          lib32-libepoxy lib32-harfbuzz lib32-pango lib32-cairo lib32-fontconfig \
+          lib32-fribidi lib32-gdk-pixbuf2 lib32-libjpeg-turbo lib32-libva \
+          lib32-libpng lib32-libtiff lib32-libx11 lib32-libxcursor lib32-libxdamage \
+          lib32-libxext lib32-libxfixes lib32-libxi lib32-libxinerama \
+          lib32-libxkbcommon lib32-libxrandr lib32-vulkan-icd-loader lib32-wayland \
+          lib32-dbus lib32-json-glib lib32-readline lib32-gtk3 lib32-libevent \
+          lib32-at-spi2-core graphene gtk4 tinysparql gst-plugins-bad \
+          libcloudproviders wayland-protocols vulkan-headers
 
-    - name: Build dependencies
-      if: inputs.skip_deps != 'true'
+    - name: Build packages
       run: |
-        echo "::group::Building dependencies"
-        if [ -f scripts/build-all.sh ]; then
-          chmod +x scripts/build-all.sh
-          sudo -u builder ./scripts/build-all.sh 2>&1 | tee build.log
-          BUILD_EXIT_CODE=${PIPESTATUS[0]}
-          if [ $BUILD_EXIT_CODE -ne 0 ]; then
-            echo "Build failed with exit code $BUILD_EXIT_CODE"
-            exit 1
-          fi
-        elif [ -f scripts/common.sh ]; then
-          source scripts/common.sh
-          log_info "Building packages in dependency order..."
-          for pkgdir in packages/*/; do
-            [ -d "$pkgdir" ] || continue
-            pkgname=$(basename "$pkgdir")
-            log_info "Building: $pkgname"
-            cd "$pkgdir"
-            sudo -u builder makepkg -sf --noconfirm 2>&1 | tee -a "$GITHUB_WORKSPACE/build.log" || {
-              log_error "Failed to build: $pkgname"
-              detect_build_error "$GITHUB_WORKSPACE/build.log"
-            }
-            cd - > /dev/null
-          done
-        else
-          echo "No build scripts found, attempting manual build..."
-        fi
-        echo "::endgroup::"
+        chmod +x scripts/build-all.sh
+        # Output packages to repo/ directory
+        sudo -u builder ./scripts/build-all.sh -o "$PWD/repo" 2>&1 | tee build.log
 
     - name: Build specific package
       if: inputs.package != ''
       run: |
         pkgdir="packages/${{ inputs.package }}"
-        if [ -d "$pkgdir" ]; then
-          echo "::group::Building ${{ inputs.package }}"
-          cd "$pkgdir"
-          sudo -u builder makepkg -sf --noconfirm 2>&1 | tee "$GITHUB_WORKSPACE/build.log"
-          echo "::endgroup::"
-        else
-          echo "Package directory not found: $pkgdir"
-          exit 1
-        fi
+        [ -d "$pkgdir" ] || { echo "Package not found"; exit 1; }
+        cd "$pkgdir"
+        sudo -u builder makepkg -sf --noconfirm
+        mv *.pkg.tar.* "$GITHUB_WORKSPACE/repo/"
 
-    - name: Detect build errors
-      if: failure()
+    - name: Update repository database
       run: |
-        if [ -f build.log ]; then
-          echo "::group::Build Error Analysis"
-          if grep -q "error:" build.log; then
-            echo "### Build Errors Found:" >> $GITHUB_STEP_SUMMARY
-            grep -A 3 "error:" build.log | head -20 >> $GITHUB_STEP_SUMMARY
-          fi
-          if grep -q "missing dependency" build.log; then
-            echo "### Missing Dependencies:" >> $GITHUB_STEP_SUMMARY
-            grep "missing dependency" build.log >> $GITHUB_STEP_SUMMARY
-          fi
-          if grep -q "cannot find" build.log; then
-            echo "### Not Found Errors:" >> $GITHUB_STEP_SUMMARY
-            grep "cannot find" build.log | head -10 >> $GITHUB_STEP_SUMMARY
-          fi
-          echo "::endgroup::"
-        fi
+        cd repo
+        chmod +x update-repo.sh
+        ./update-repo.sh
 
-    - name: Collect built packages
-      id: collect
-      run: |
-        mkdir -p artifacts
-        find . -name "*.pkg.tar.zst" -type f -exec cp {} artifacts/ \; 2>/dev/null || true
-        find . -name "*.pkg.tar.xz" -type f -exec cp {} artifacts/ \; 2>/dev/null || true
-        
-        echo "### Build Summary" >> $GITHUB_STEP_SUMMARY
-        echo "" >> $GITHUB_STEP_SUMMARY
-        if [ -d artifacts ] && [ "$(ls -A artifacts 2>/dev/null)" ]; then
-          echo "Built packages:" >> $GITHUB_STEP_SUMMARY
-          for pkg in artifacts/*; do
-            [ -f "$pkg" ] || continue
-            pkgbasename=$(basename "$pkg")
-            size=$(du -h "$pkg" | cut -f1)
-            echo "- \`$pkgbasename\` ($size)" >> $GITHUB_STEP_SUMMARY
-          done
-          echo "packages_built=true" >> $GITHUB_OUTPUT
-          echo "package_count=$(ls artifacts/*.pkg.tar.* 2>/dev/null | wc -l)" >> $GITHUB_OUTPUT
-        else
-          echo "No packages were built successfully." >> $GITHUB_STEP_SUMMARY
-          echo "packages_built=false" >> $GITHUB_OUTPUT
-          echo "package_count=0" >> $GITHUB_OUTPUT
-        fi
-
-    - name: Detect features
-      run: |
-        chmod +x scripts/detect-features.sh
-        ./scripts/detect-features.sh
-
-    - name: Update repo database
-      if: success()
-      run: |
-        chmod +x repo/update-repo.sh
-        ./repo/update-repo.sh
-      env:
-        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-
-    - name: Commit and push artifacts
-      if: success()
+    - name: Commit to repository
       run: |
         git config --global --add safe.directory '*'
         git config --global user.email "kilo-ai@users.noreply.github.com"
         git config --global user.name "Kilo AI"
-        git add FEATURES.md repo/
-        git commit -m "chore: update FEATURES.md and repo" || echo "No changes to commit"
-        git push origin main || echo "Push failed, this is expected for PRs"
+        
+        git add repo/
+        git commit -m "chore: update packages and repo database" || echo "No changes"
+        git push origin main
 
-    - name: Upload packages artifact
-      if: steps.collect.outputs.packages_built == 'true'
-      uses: actions/upload-artifact@v4
-      with:
-        name: lib32-gtk4-packages
-        path: artifacts/*.pkg.tar.*
-        retention-days: 30
-        if-no-files-found: warn
-
-    - name: Upload build logs
-      if: always()
+    - name: Upload logs on failure
+      if: failure()
       uses: actions/upload-artifact@v4
       with:
         name: build-logs
-        path: |
-          build.log
-          **/build.log
-          **/*.log
+        path: build.log
         retention-days: 7
-        if-no-files-found: ignore
-
-  release:
-    needs: [build, preflight]
-    runs-on: ubuntu-latest
-    if: startsWith(github.ref, 'refs/tags/v')
-    permissions:
-      contents: write
-    
-    steps:
-    - name: Checkout repository
-      uses: actions/checkout@v4
-
-    - name: Download artifacts
-      uses: actions/download-artifact@v4
-      with:
-        name: lib32-gtk4-packages
-        path: packages
-
-    - name: Create release
-      env:
-        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-      run: |
-        TAG_NAME=${GITHUB_REF#refs/tags/}
-        
-        echo "### Release $TAG_NAME" >> release_notes.md
-        echo "" >> release_notes.md
-        echo "Prebuilt lib32-gtk4 packages for Arch Linux multilib." >> release_notes.md
-        echo "" >> release_notes.md
-        echo "#### Included Packages:" >> release_notes.md
-        for pkg in packages/*.pkg.tar.*; do
-          [ -f "$pkg" ] || continue
-          pkgname=$(basename "$pkg")
-          echo "- \`$pkgname\`" >> release_notes.md
-        done
-        echo "" >> release_notes.md
-        echo "#### Installation:" >> release_notes.md
-        echo "\`\`\`bash" >> release_notes.md
-        echo "sudo pacman -U packages/*.pkg.tar.zst" >> release_notes.md
-        echo "\`\`\`" >> release_notes.md
-        
-        gh release create "$TAG_NAME" \
-          --title "Release $TAG_NAME" \
-          --notes-file release_notes.md \
-          packages/*.pkg.tar.* || \
-        gh release upload "$TAG_NAME" packages/*.pkg.tar.* --clobber

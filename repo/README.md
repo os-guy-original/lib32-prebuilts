@@ -1,41 +1,36 @@
-# lib32-gtk4-custom Prebuilt Repository
+# lib32-gtk4-custom Repository
 
 ## Installation
 
-1. Add the repository to `/etc/pacman.conf`:
+Add the repository to your system:
 
 ```bash
-# Add this to the end of /etc/pacman.conf:
+# Add to /etc/pacman.conf:
 [lib32-gtk4-custom]
-Server = https://github.com/os-guy-original/lib32-gtk4-custom-prebuilt/raw/main/repo
+Server = https://raw.githubusercontent.com/os-guy-original/lib32-gtk4-custom-prebuilt/main/repo
 ```
 
-2. Refresh the package database:
+Refresh and install:
 
 ```bash
 sudo pacman -Sy
-```
-
-3. Install the package:
-
-```bash
 sudo pacman -S lib32-gtk4
 ```
 
-## Updating the Repository
-
-Run the update script:
-
-```bash
-./update-repo.sh
-```
-
-This will rebuild the database from packages in the `../releases/` directory.
-
 ## Manual Installation
 
-You can also download packages directly from the releases directory and install with:
+Download packages from the [Releases](https://github.com/os-guy-original/lib32-gtk4-custom-prebuilt/releases) page:
 
 ```bash
-sudo pacman -U <package-file>
+sudo pacman -U lib32-gtk4-*.pkg.tar.zst
 ```
+
+## Updating the Repository Database
+
+Run from the project root:
+
+```bash
+./repo/update-repo.sh
+```
+
+This creates `lib32-gtk4-custom.db.tar.gz` from packages in `releases/`.

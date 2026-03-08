@@ -7,9 +7,13 @@ src/
 *.pkg.tar.xz
 *.pkg.tar.gz
 *.tar.xz
-*.tar.gz
 *.tar.bz2
 *.tar.zst
+
+# Allow repo directory to contain packages and database
+!repo/*.pkg.tar.zst
+!repo/*.pkg.tar.xz
+!repo/*.tar.gz
 
 # Build metadata files
 .BUILDINFO
