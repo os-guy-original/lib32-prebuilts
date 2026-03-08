@@ -169,10 +169,16 @@ clean_package() {
 
 build_package_full() {
     local pkgname="$1"
-    local pkgdir="$PROJECT_ROOT/packages/$pkgname"
+    local pkgdir=""
     
-    if [[ ! -d "$pkgdir" ]]; then
-        log_error "Package directory not found: $pkgdir"
+    if [[ -d "$PROJECT_ROOT/packages/dependencies/$pkgname" ]]; then
+        pkgdir="$PROJECT_ROOT/packages/dependencies/$pkgname"
+    elif [[ -d "$PROJECT_ROOT/packages/$pkgname" ]]; then
+        pkgdir="$PROJECT_ROOT/packages/$pkgname"
+    else
+        log_error "Package directory not found for: $pkgname"
+        log_error "Checked: $PROJECT_ROOT/packages/dependencies/$pkgname"
+        log_error "Checked: $PROJECT_ROOT/packages/$pkgname"
         return 1
     fi
     
