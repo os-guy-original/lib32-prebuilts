@@ -87,16 +87,29 @@ The build is working!
 
 ## Build Progress (Latest Updates)
 
-Since the initial build completion, significant work has been done to improve the workflow and fix issues:
+### Current Session (Mar 8, 2026) - Kilo AI
 
-### Workflow Fixes Applied:
-- **Git safe.directory configuration** — Added to prevent "detected dubious ownership" errors in CI environment when running git commands inside the container
-- **repo-add -R flag** — Added the `-R` flag to repo-add command to remove old package files from the database before adding new ones, preventing database corruption from stale entries
-- **Feature detection script** — Now fully functional, automatically detects and reports missing features in the built lib32-gtk4 package compared to the 64-bit version
+#### Issue: "Unrecognized archive format" Error
+**Root Cause Identified:**
+1. `.gitignore` blocked `*.tar.gz` files including database
+2. Symlinks in repo/ pointed to non-existent files (GitHub returns 404 HTML)
+3. Packages were built to releases/ but never committed to repo
 
-### Repo Database Creation:
-- Currently being fixed — Working on resolving symlink issues in the repository database generation
-- The workflow now properly generates a pacman-compatible repository database
+**Fixes Applied:**
+- Updated `.gitignore` to allow packages in `repo/`
+- Rewrote `update-repo.sh` to create actual database files (no symlinks)
+- Simplified CI workflow to build directly to `repo/`
+- Removed 2,217 lines of unnecessary script complexity
+
+#### Current Issue Being Fixed:
+- **Error**: `target not found: multilib-devel`
+- **Cause**: archlinux:latest container doesn't have commented `[multilib]` section
+- **Fix**: Properly append multilib config to pacman.conf if not present
+
+### Previous Workflow Fixes Applied:
+- **Git safe.directory configuration** — Added to prevent "detected dubious ownership" errors
+- **repo-add -R flag** — Remove old package files before adding new ones
+- **Feature detection script** — Auto-detects missing features
 
 ## Known Issues
 

@@ -25,7 +25,12 @@ jobs:
       run: |
         pacman-key --init
         pacman-key --populate archlinux
-        sed -i '/^#\[multilib\]/,/^#Include/ s/^#//' /etc/pacman.conf
+        
+        # Enable multilib repository
+        if ! grep -q '^\[multilib\]' /etc/pacman.conf; then
+          echo -e "\n[multilib]\nInclude = /etc/pacman.d/mirrorlist" >> /etc/pacman.conf
+        fi
+        
         pacman -Sy --noconfirm
         pacman -S --noconfirm --needed base-devel git multilib-devel sudo meson ninja pkgconf cmake
 
