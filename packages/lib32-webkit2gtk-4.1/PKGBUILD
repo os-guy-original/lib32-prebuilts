@@ -99,7 +99,7 @@ build() {
         -DUSE_OPENJPEG=OFF \
         -DUSE_LIBMANETTE=OFF \
         -DUSE_AVIF=OFF \
-        -DUSE_HYPHEN=OFF
+        -DUSE_LIBHYPHEN=OFF
     
     cmake --build build
 }
