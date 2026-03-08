@@ -16,6 +16,8 @@ src/
 !repo/*.tar.gz
 !repo/*.db
 !repo/*.files
+!repo/*.sig
+!repo/*.pub
 
 # Build metadata files
 .BUILDINFO

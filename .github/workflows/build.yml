@@ -14,6 +14,7 @@ on:
 env:
   PACKAGER: 'Kilo AI <kilo-ai@users.noreply.github.com>'
   MAKEFLAGS: '-j$(nproc)'
+  GPG_KEY_ID: 'E4A5D5830B9BD51A'
 
 jobs:
   build:
@@ -32,10 +33,17 @@ jobs:
         fi
         
         pacman -Sy --noconfirm
-        pacman -S --noconfirm --needed base-devel git multilib-devel sudo meson ninja pkgconf cmake
+        pacman -S --noconfirm --needed base-devel git multilib-devel sudo meson ninja pkgconf cmake gnupg
 
     - name: Checkout
       uses: actions/checkout@v4
+
+    - name: Import GPG key
+      env:
+        GPG_PRIVATE_KEY: ${{ secrets.GPG_PRIVATE_KEY }}
+      run: |
+        echo "$GPG_PRIVATE_KEY" | gpg --import --batch
+        echo "GPG key imported"
 
     - name: Setup build user
       run: |
@@ -61,7 +69,6 @@ jobs:
     - name: Build packages
       run: |
         chmod +x scripts/build-all.sh
-        # Output packages to repo/ directory
         sudo -u builder ./scripts/build-all.sh -o "$PWD/repo" 2>&1 | tee build.log
 
     - name: Build specific package
@@ -72,6 +79,16 @@ jobs:
         cd "$pkgdir"
         sudo -u builder makepkg -sf --noconfirm
         mv *.pkg.tar.* "$GITHUB_WORKSPACE/repo/"
+
+    - name: Sign packages
+      run: |
+        cd repo
+        for pkg in *.pkg.tar.zst; do
+          [ -f "$pkg" ] || continue
+          echo "Signing $pkg..."
+          gpg --batch --yes --detach-sign --armor -u $GPG_KEY_ID "$pkg"
+        done
+        ls -la *.sig 2>/dev/null || echo "No signatures created"
 
     - name: Update repository database
       run: |
