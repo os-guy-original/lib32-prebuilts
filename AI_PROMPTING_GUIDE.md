@@ -1,12 +1,19 @@
-# AI Prompting Guide for lib32-gtk4-custom-prebuilt
+# AI Prompting Guide for lib32-prebuilts
 
 This document serves as a comprehensive guide for AI assistants tasked with working on this repository. It provides essential context, history, and operational procedures to ensure continuity and effective problem-solving.
 
 ## 1. Repository Purpose
 
-This repository exists as an AI management test project focused on building `lib32-gtk4` on Arch Linux. The primary objective is to create a working 32-bit GTK4 library stack for multilib usage on 64-bit Arch Linux systems. The original AUR (Arch User Repository) package contains several bugs that prevent proper compilation, including dependency issues where certain required packages do not compile correctly or have incomplete build configurations.
+This repository exists as an AI management test project focused on building 32-bit packages on Arch Linux. The primary objective is to create working 32-bit library stacks for multilib usage on 64-bit Arch Linux systems. The original AUR (Arch User Repository) packages contain several bugs that prevent proper compilation, including dependency issues where certain required packages do not compile correctly or have incomplete build configurations.
 
-The repository serves dual purposes: first, to produce working 32-bit GTK4 packages that can be used in multilib environments, and second, to serve as a testing ground for AI-driven software engineering workflows. The build system was created entirely from scratch after identifying deficiencies in the upstream AUR packages.
+The repository serves dual purposes: first, to produce working 32-bit packages that can be used in multilib environments, and second, to serve as a testing ground for AI-driven software engineering workflows. The build system was created entirely from scratch after identifying deficiencies in the upstream AUR packages.
+
+### Supported Packages
+
+The repository currently builds and maintains the following main packages:
+
+- **lib32-gtk4** - 32-bit GTK4 library for graphical user interfaces
+- **lib32-ffmpeg** - 32-bit FFmpeg multimedia framework for audio/video processing
 
 ## 2. What Has Been Done
 
@@ -185,7 +192,7 @@ Third, analyze the errors to determine the root cause. Common issues include mis
 
 When fixing issues in this repository, follow these guidelines:
 
-For PKGBUILD modifications, edit the appropriate file in `packages/dependencies/` or `packages/lib32-gtk4/`, ensuring that pkgver, sha256sums, and dependencies are correct. Test changes locally if possible before pushing.
+For PKGBUILD modifications, edit the appropriate file in `packages/dependencies/` or `packages/lib32-gtk4/` (or `packages/lib32-ffmpeg/`), ensuring that pkgver, sha256sums, and dependencies are correct. Test changes locally if possible before pushing.
 
 For workflow modifications, edit `.github/workflows/build.yml` to adjust the build matrix, add dependencies, or modify build steps.
 
@@ -230,7 +237,7 @@ The following GitHub CLI commands are essential for working with this repository
 To see the three most recent workflow runs:
 
 ```bash
-gh run list --repo os-guy-original/lib32-gtk4-custom-prebuilt --limit 3
+gh run list --repo os-guy-original/lib32-prebuilts --limit 3
 ```
 
 This command displays the run ID, workflow name, status (success, failure, in_progress), and commit message for each recent attempt. The run ID is required for downloading logs or artifacts.
@@ -250,7 +257,7 @@ Replace `<id>` with the numeric run ID from the list command. This downloads the
 To download the built packages (if the build succeeds partially):
 
 ```bash
-gh run download <id> --name lib32-gtk4-packages --dir /tmp/packages
+gh run download <id> --name lib32-prebuilts-packages --dir /tmp/packages
 ```
 
 This downloads any successfully built packages from the workflow run. Note that failed runs may not have packages available, depending on where the failure occurred.
@@ -260,7 +267,7 @@ This downloads any successfully built packages from the workflow run. Note that 
 To watch a running build in real-time:
 
 ```bash
-gh run watch <id> --repo os-guy-original/lib32-gtk4-custom-prebuilt --exit-status
+gh run watch <id> --repo os-guy-original/lib32-prebuilts --exit-status
 ```
 
 This command displays the progress of the specified workflow run and will exit with a non-zero status if the build fails, or zero if it succeeds. This is useful for waiting on a running build without manually checking status repeatedly.
@@ -289,6 +296,7 @@ The repository is organized as follows:
 
 - `.github/workflows/build.yml` — Main CI/CD workflow definition.
 - `packages/lib32-gtk4/` — PKGBUILD and patches for the main lib32-gtk4 package.
+- `packages/lib32-ffmpeg/` — PKGBUILD and patches for the main lib32-ffmpeg package.
 - `packages/dependencies/` — PKGBUILDs for custom dependency packages.
 - `scripts/` — Helper scripts for building, dependency resolution, and cleanup.
 - `aur-reference/` — Original AUR package files for reference.
@@ -301,3 +309,34 @@ Understanding this structure helps locate the appropriate file when making modif
 The immediate priority is to diagnose and fix the lib32-gst-plugins-bad-libs build failure. This involves downloading the most recent build logs, identifying the specific error messages, determining which additional meson options need to be disabled or which dependencies are missing, updating the PKGBUILD accordingly, and pushing the fix to trigger a new build.
 
 After resolving this immediate issue, consider whether additional features can be re-enabled safely, whether there are newer versions of dependencies that might resolve the issues, and whether the build can be optimized or parallelized for faster iteration.
+
+## 9. lib32-ffmpeg Package
+
+### Overview
+
+The `lib32-ffmpeg` package provides 32-bit FFmpeg multimedia framework support for applications that require 32-bit video/audio processing capabilities. This is commonly needed for:
+
+- 32-bit games that use FMOD or other audio libraries
+- Wine/Proton applications requiring 32-bit codec support
+- Legacy 32-bit multimedia applications
+
+### Build Considerations
+
+Building lib32-ffmpeg requires careful attention to:
+
+1. **Codec Selection**: Many codec libraries may not have 32-bit versions available in multilib. The PKGBUILD should disable codecs that lack 32-bit support.
+
+2. **VA-API Support**: Hardware video acceleration (VA-API) requires `lib32-libva` which is available in multilib.
+
+3. **Build Time**: FFmpeg is a large package and may take considerable time to compile.
+
+4. **Optional Dependencies**: Consider which optional features to enable based on available 32-bit dependencies in the Arch multilib repository.
+
+### Common Build Flags
+
+Typical configure flags for lib32-ffmpeg builds:
+- `--enable-shared` - Build shared libraries
+- `--disable-static` - Disable static libraries
+- `--enable-gpl` - Enable GPL licensed code
+- `--enable-version3` - Enable version 3 licensed code
+- Various codec enable/disable flags based on available 32-bit dependencies

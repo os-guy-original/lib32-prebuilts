@@ -158,7 +158,7 @@ build_packages() {
 # Main
 echo ""
 echo -e "${BOLD}========================================${NC}"
-echo -e "${BOLD}   lib32-gtk4 Build System${NC}"
+echo -e "${BOLD}   lib32-prebuilts Build System${NC}"
 echo -e "${BOLD}========================================${NC}"
 echo ""
 
