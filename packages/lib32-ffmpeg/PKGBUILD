@@ -40,19 +40,8 @@ provides=('lib32-libavcodec.so' 'lib32-libavdevice.so' 'lib32-libavfilter.so' 'l
           'lib32-libavutil.so' 'lib32-libpostproc.so' 'lib32-libswresample.so' 'lib32-libswscale.so')
 source=(
     "https://ffmpeg.org/releases/ffmpeg-${pkgver}.tar.xz"
-    '0001-Add-av_stream_get_first_dts-for-Chromium.patch'
-    '0001-unbreak-glslang-build.patch'
 )
-sha256sums=('SKIP'
-            'f865d677f8ad39c79dde69186629cb6468c2b289c4156dbb8dec8e68b0131b40'
-            '1fc944467ffbd5be38158c3edc587ce15d7509b80c93506016ef183da7eb046b')
-
-prepare() {
-    cd "${_pkgname}-${pkgver}"
-
-    patch -Np1 -i "${srcdir}/0001-Add-av_stream_get_first_dts-for-Chromium.patch"
-    patch -Np1 -i "${srcdir}/0001-unbreak-glslang-build.patch"
-}
+sha256sums=('SKIP')
 
 build() {
     cd "${_pkgname}-${pkgver}"

@@ -50,6 +50,21 @@ get_package_count() {
     echo $count
 }
 
+build_package() {
+    local pkgdir="$1"
+    local name="$2"
+    local build_log="/tmp/build-${name}.log"
+    
+    cd "$pkgdir"
+    
+    # Run makepkg and capture output
+    if makepkg -sf --noconfirm --nocheck 2>&1 | tee "$build_log"; then
+        return 0
+    else
+        return 1
+    fi
+}
+
 build_packages() {
     local deps_file="$SCRIPT_DIR/dependencies.conf"
     local built=0 failed=0 skipped=0
@@ -101,19 +116,7 @@ build_packages() {
         local pkg_start=$(date +%s)
         
         # Build the package
-        if (cd "$pkgdir" && makepkg -sf --noconfirm --nocheck 2>&1 | while read -r line; do
-            case "$line" in
-                "==> Making package:"*|"==> Starting build"*|"==> Finished making:"*)
-                    echo "    $line"
-                    ;;
-                "==> Creating package"*|"==> Entering fakeroot"*)
-                    echo "    $line"
-                    ;;
-                *"error:"*|*"Error:"*|*"ERROR:"*)
-                    echo "    $line"
-                    ;;
-            esac
-        done); then
+        if build_package "$pkgdir" "$name"; then
             # Move built package to output
             mv "$pkgdir"/*.pkg.tar.* "$OUTPUT_DIR/" 2>/dev/null || true
             
