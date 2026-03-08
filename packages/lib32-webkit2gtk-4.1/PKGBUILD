@@ -23,6 +23,7 @@ depends=(
     'lib32-gtk3'
     'lib32-harfbuzz'
     'lib32-harfbuzz-icu'
+    'lib32-hyphen'
     'lib32-icu'
     'lib32-lcms2'
     'lib32-libdrm'
@@ -101,8 +102,7 @@ build() {
         -DUSE_WOFF2=OFF \
         -DUSE_OPENJPEG=OFF \
         -DUSE_LIBMANETTE=OFF \
-        -DUSE_AVIF=OFF \
-        -DUSE_HYPHEN=OFF
+        -DUSE_AVIF=OFF
     
     cmake --build build
 }
